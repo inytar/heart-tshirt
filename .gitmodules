@@ -1,0 +1,3 @@
+[submodule "lib/ADC"]
+	path = lib/ADC
+	url = https://github.com/pedvide/ADC.git
