@@ -212,7 +212,6 @@ void mirrorHeart() {
   }
   CRGBSet heart = heartsArray[posHeart];
   uint8_t fracHeart = (posHeart16 & 0X0F) * 16;
-  Serial.println(fracHeart);
   // 22 leds to turn on, we want a fraction again so 22 * 16)
   uint16_t pos16 = scale8(fracHeart, (heart.size() / 2 + 1) * 16);
   // The last led to turn on.
