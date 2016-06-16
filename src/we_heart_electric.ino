@@ -3,11 +3,11 @@
 
 FASTLED_USING_NAMESPACE
 
-// FastLED "100-lines-of-code" demo reel, showing just a few 
-// of the kinds of animation patterns you can quickly and easily 
-// compose using FastLED.  
+// FastLED "100-lines-of-code" demo reel, showing just a few
+// of the kinds of animation patterns you can quickly and easily
+// compose using FastLED.
 //
-// This example also shows one easy way to define multiple 
+// This example also shows one easy way to define multiple
 // animations patterns and have them automatically rotate.
 //
 // -Mark Kriegsman, December 2014
@@ -36,7 +36,7 @@ void setup() {
   adc->setReference(ADC_REF_1V2);
   adc->setResolution(16);
   adc->setAveraging(8);
-  
+
   // tell FastLED about the LED strip configuration
   FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
@@ -62,7 +62,7 @@ SimplePatternList gPatterns = {
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
-  
+
 void loop()
 {
   // Call the current pattern function once, updating the 'leds' array
@@ -73,11 +73,11 @@ void loop()
   // send the 'leds' array out to the actual LED strip
   FastLED.show();
   // insert a delay to keep the framerate modest
-  FastLED.delay(1000/FRAMES_PER_SECOND); 
+  FastLED.delay(1000/FRAMES_PER_SECOND);
 
   // do some periodic updates
   EVERY_N_MILLISECONDS( 10 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 60 ) { nextPattern(); } // change patterns periodically
+  EVERY_N_SECONDS( 6 ) { nextPattern(); } // change patterns periodically
 }
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
@@ -92,27 +92,27 @@ void nextPattern()
   gCurrentPatternNumber = random16(ARRAY_SIZE(gPatterns));
 }
 
-void rainbow() 
+void rainbow()
 {
   // FastLED's built-in rainbow generator
   fill_rainbow( leds, NUM_LEDS, gHue, 7);
 }
 
-void rainbowWithGlitter() 
+void rainbowWithGlitter()
 {
   // built-in FastLED rainbow, plus some random sparkly glitter
   rainbow();
   addGlitter(80);
 }
 
-void addGlitter( fract8 chanceOfGlitter) 
+void addGlitter( fract8 chanceOfGlitter)
 {
   if( random8() < chanceOfGlitter) {
     leds[ random16(NUM_LEDS) ] += CRGB::White;
   }
 }
 
-void confetti() 
+void confetti()
 {
   // random colored speckles that blink in and fade smoothly
   fadeToBlackBy( leds, NUM_LEDS, 10);
@@ -198,17 +198,23 @@ void heartGrow() {
 
 void beatDetected() {
   static uint16_t avgVolume = 0;
-  // FF Transform 
+  // FF Transform
 }
 
 void mirrorHeart() {
   // Herats growing in size in mirror from bottom.
   CLEAR_PIXELS;
-  uint8_t beat = 4;
-  uint8_t hPos = scale8(beat8(beat), 2) + 1;
-  CRGBSet heart = heartsArray[hPos];
+  uint8_t beat = 10;
+  uint8_t posHeart16 = scale16(beat16(beat), 3 * 24);
+  uint8_t posHeart = posHeart16 / 24 + 1;
+  if(posHeart > ARRAY_SIZE(heartsArray) - 1) {
+    posHeart = ARRAY_SIZE(heartsArray) - 1;
+  }
+  CRGBSet heart = heartsArray[posHeart];
+  uint8_t fracHeart = (posHeart16 & 0X0F) * 16;
+  Serial.println(fracHeart);
   // 22 leds to turn on, we want a fraction again so 22 * 16)
-  uint16_t pos16 = scale16(beat16(beat * 7), (heart.size() / 2 + 1) * 16);
+  uint16_t pos16 = scale8(fracHeart, (heart.size() / 2 + 1) * 16);
   // The last led to turn on.
   uint8_t pos = pos16 / 16;
   // Now get which led this is in the heart matrix.
