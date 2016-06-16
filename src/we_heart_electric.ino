@@ -1,4 +1,5 @@
 #include "FastLED.h"
+#include "ADC.h"
 
 FASTLED_USING_NAMESPACE
 
@@ -19,10 +20,10 @@ FASTLED_USING_NAMESPACE
 #define LED_TYPE    WS2812
 #define COLOR_ORDER GRB
 // Leds + 1, last led is used as phanthom for the hearts array.
-#define NUM_LEDS    40
+#define NUM_LEDS    39
 CRGBArray<NUM_LEDS> leds;
 
-CRGBSet heartsArray[] {CRGBSet(leds, 39, 39), CRGBSet(leds, 38, 30), CRGBSet(leds, 29, 16), CRGBSet(leds, 15, 0)};
+CRGBSet heartsArray[] {CRGBSet(leds, 38, 38), CRGBSet(leds, 30, 37), CRGBSet(leds, 16, 29), CRGBSet(leds, 0, 15)};
 
 ADC *adc = new ADC();
 
@@ -32,6 +33,9 @@ ADC *adc = new ADC();
 void setup() {
   Serial.begin(9600);
   delay(3000); // 3 second delay for recovery
+  adc->setReference(ADC_REF_1V2);
+  adc->setResolution(16);
+  adc->setAveraging(8);
   
   // tell FastLED about the LED strip configuration
   FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
@@ -44,16 +48,16 @@ void setup() {
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
 SimplePatternList gPatterns = {
+  heartGrow,
   rainbow,
   rainbowWithGlitter,
   confetti,
   sinelon,
   juggle,
-  /* bpm, */
   rainbowHeart,
   rainbowHeartWithGlitter,
   heartMove,
-  heartGrow,
+  mirrorHeart,
 };
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
@@ -63,6 +67,8 @@ void loop()
 {
   // Call the current pattern function once, updating the 'leds' array
   gPatterns[gCurrentPatternNumber]();
+  int anVal = adc->analogRead(A2);
+  random16_add_entropy(anVal);
 
   // send the 'leds' array out to the actual LED strip
   FastLED.show();
@@ -71,7 +77,7 @@ void loop()
 
   // do some periodic updates
   EVERY_N_MILLISECONDS( 10 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 12 ) { nextPattern(); } // change patterns periodically
+  EVERY_N_SECONDS( 60 ) { nextPattern(); } // change patterns periodically
 }
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
@@ -152,11 +158,8 @@ void rainbowHeart() {
   hsv.sat = 255;
   for(int pos = 0; pos <= 3; pos++) {
     for(CRGB & pixel : heartsArray[pos]) { pixel = hsv; }
-    hsv.hue += 45;
-    Serial.println(hsv.hue);
+    hsv.hue += 60;
   }
-  Serial.print("end");
-  Serial.println();
 }
 
 void rainbowHeartWithGlitter() {
@@ -167,7 +170,7 @@ void rainbowHeartWithGlitter() {
 void heartMove() {
   // A Heart that moves from small to large and back.
   CLEAR_PIXELS;
-  int pos = scale8(triwave8(beat8(20)), 2) + 1;
+  int pos = scale8(triwave8(beat8(25)), 2) + 1;
   CHSV hsv = CHSV( gHue, 240, 255);
   for(CRGB & pixel : heartsArray[pos]) { pixel = hsv; }
 };
@@ -176,7 +179,7 @@ void heartMove() {
 void heartGrow() {
   // Growing heart with 16th of a fraction.
   CLEAR_PIXELS;
-  uint8_t pos16 = scale8(triwave8(beat8(20)), 4 * 16);
+  uint8_t pos16 = scale8(triwave8(beat8(25)), 4 * 16);
   uint8_t pos = pos16 / 16;
   uint8_t frac = pos16 & 0X0F;
   uint8_t mainPixelBrightness = frac * 16;
@@ -190,5 +193,40 @@ void heartGrow() {
       bright = 0;
     }
     heartsArray[i] = CHSV(gHue, 240, bright);
+  }
+}
+
+void beatDetected() {
+  static uint16_t avgVolume = 0;
+  // FF Transform 
+}
+
+void mirrorHeart() {
+  // Herats growing in size in mirror from bottom.
+  CLEAR_PIXELS;
+  uint8_t beat = 4;
+  uint8_t hPos = scale8(beat8(beat), 2) + 1;
+  CRGBSet heart = heartsArray[hPos];
+  // 22 leds to turn on, we want a fraction again so 22 * 16)
+  uint16_t pos16 = scale16(beat16(beat * 7), (heart.size() / 2 + 1) * 16);
+  // The last led to turn on.
+  uint8_t pos = pos16 / 16;
+  // Now get which led this is in the heart matrix.
+  uint8_t frac = pos16 & 0X0F;
+  uint8_t mainPixelBrightness = frac * 16;
+  uint8_t bright;
+  for(int i = 0; i < heart.size() / 2 + 1; i++) {
+    if(i < pos) {
+      bright = 255;
+    } else if(i == pos) {
+      bright = mainPixelBrightness;
+    } else {
+      bright = 0;
+    }
+    heart[i] = CHSV(gHue, 240, bright);
+    uint8_t op = heart.size() - i;
+    if((op < heart.size()) && (op > heart.size() / 2)) {
+      heart[op] = heart[i];
+    }
   }
 }
