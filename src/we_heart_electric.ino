@@ -89,7 +89,8 @@ void nextPattern()
   // add one to the current pattern number, and wrap around at the end
   /* gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns); */
   // Get random pattern
-  gCurrentPatternNumber = random16(ARRAY_SIZE(gPatterns));
+  gCurrentPatternNumber = (gCurrentPatternNumber + random16(ARRAY_SIZE(gPatterns) / 2)) % ARRAY_SIZE(gPatterns);
+  /* gCurrentPatternNumber = random16(ARRAY_SIZE(gPatterns)); */
 }
 
 void rainbow()
