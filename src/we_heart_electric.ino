@@ -42,6 +42,7 @@ void setup() {
 
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
+  nextPattern();
 }
 
 
@@ -89,7 +90,7 @@ void nextPattern()
   // add one to the current pattern number, and wrap around at the end
   /* gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns); */
   // Get random pattern
-  gCurrentPatternNumber = (gCurrentPatternNumber + random16(ARRAY_SIZE(gPatterns) / 2)) % ARRAY_SIZE(gPatterns);
+  gCurrentPatternNumber = (gCurrentPatternNumber + random16(1, ARRAY_SIZE(gPatterns) / 2)) % ARRAY_SIZE(gPatterns);
   /* gCurrentPatternNumber = random16(ARRAY_SIZE(gPatterns)); */
 }
 
